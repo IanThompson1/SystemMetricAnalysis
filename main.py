@@ -30,7 +30,7 @@ def collect_system_metrics():
         disc_usage = ps.disk_usage('/')
         with open(csv_file, "a", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow([datetime.now().isoformat(), cpu_user_percent, cpu_system_percent, cpu_idle_percent, memory_usage.percent, disc_usage.percent])
+            writer.writerow([datetime.now().replace(microsecond=0).isoformat(), cpu_user_percent, cpu_system_percent, cpu_idle_percent, memory_usage.percent, disc_usage.percent])
 
 def analyze_system_metrics():
     df = pd.read_csv(csv_file)
@@ -128,13 +128,92 @@ def analyze_system_metrics():
     logging.info(f"Ingestion completed in {time_elapsed} seconds")
 
     # Save results
-    df.to_csv('output.csv', index=False)
+    df.to_csv('cleaned_metrics.csv', index=False)
+
+def transform_system_metrics():
+    df = pd.read_csv('cleaned_metrics.csv')
+    df_out = pd.DataFrame(columns=["window_start", "window_end", "sample_count", "avg_cpu_total_percent", "min_cpu_idle_percent", "max_memory_usage_percent", "avg_disk_usage_percent", "memory_pressure_flag", "cpu_saturation_flag"])
+    
+    # setup 5 second windows
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    
+    df['start_timestamp'] = df['timestamp']
+    df['end_timestamp'] = df['timestamp']
+    df.set_index('timestamp', inplace=True)
+
+    df['temp'] = 1  # Temporary column to count samples
+    
+    # Transform data
+    df = df.resample('5s').agg({
+        'start_timestamp': 'min',
+        'end_timestamp': 'max',
+        'cpu_user_percent': 'mean',
+        'cpu_system_percent': 'mean',
+        'cpu_idle_percent': 'min',
+        'memory_used_percent': 'max', 
+        'disk_used_percent': 'mean',
+        'temp': 'sum'
+    })
+
+    df_out['window_start'] = df['start_timestamp']
+    df_out['window_end'] = df['end_timestamp']
+    df_out['sample_count'] = df['temp']
+    df_out['avg_cpu_total_percent'] = (df['cpu_user_percent'] + df['cpu_system_percent']).round(1)
+    df_out['min_cpu_idle_percent'] = df['cpu_idle_percent']
+    df_out['max_memory_usage_percent'] = df['memory_used_percent'].round(1)
+    df_out['avg_disk_usage_percent'] = df['disk_used_percent'].round(1)
+    df_out['memory_pressure_flag'] = df_out['max_memory_usage_percent'] > 90.0
+    df_out['cpu_saturation_flag'] = df_out['min_cpu_idle_percent'] < 10.0
+    df_out = df_out.dropna(subset=['avg_cpu_total_percent', 'max_memory_usage_percent', 'min_cpu_idle_percent'])
+    df_out.reset_index(drop=True, inplace=True)
+
+    df_out.to_csv('metrics_5s.csv', index=False, date_format="%Y-%m-%dT%H:%M:%S")
 
 
-print("Would you like to collect system metrics?")
-listen = input("Type 'y' to collect metrics, or 'n' to skip to analysis: ")
-if listen.lower() == 'y':
-    print("Collecting system metrics...")
-    collect_system_metrics()
+    # setup 15 second windows
+    df = pd.read_csv('cleaned_metrics.csv')
+    df_out = pd.DataFrame(columns=["window_start", "window_end", "sample_count", "avg_cpu_total_percent", "min_cpu_idle_percent", "max_memory_usage_percent", "avg_disk_usage_percent", "memory_pressure_flag", "cpu_saturation_flag"])
+    
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+    df['start_timestamp'] = df['timestamp']
+    df['end_timestamp'] = df['timestamp']
+    df.set_index('timestamp', inplace=True)
+
+    df['temp'] = 1  # Temporary column to count samples
+
+    # Write transformed data
+    df = df.resample('15s').agg({
+        'start_timestamp': 'min',
+        'end_timestamp': 'max',
+        'cpu_user_percent': 'mean',
+        'cpu_system_percent': 'mean',
+        'cpu_idle_percent': 'min',
+        'memory_used_percent': 'max', 
+        'disk_used_percent': 'mean',
+        'temp': 'sum'
+    })
+    df_out['window_start'] = df['start_timestamp']
+    df_out['window_end'] = df['end_timestamp']
+    df_out['sample_count'] = df['temp']
+    df_out['avg_cpu_total_percent'] = (df['cpu_user_percent'] + df['cpu_system_percent']).round(1)
+    df_out['min_cpu_idle_percent'] = df['cpu_idle_percent']
+    df_out['max_memory_usage_percent'] = df['memory_used_percent'].round(1)
+    df_out['avg_disk_usage_percent'] = df['disk_used_percent'].round(1)
+    df_out['memory_pressure_flag'] = df_out['max_memory_usage_percent'] > 90.0
+    df_out['cpu_saturation_flag'] = df_out['min_cpu_idle_percent'] < 10.0
+    df_out = df_out.dropna(subset=['avg_cpu_total_percent', 'max_memory_usage_percent', 'min_cpu_idle_percent'])
+    df_out.reset_index(drop=True, inplace=True)
+
+    df_out.to_csv('metrics_15s.csv', index=False, date_format="%Y-%m-%dT%H:%M:%S")
+
+
+# print("Would you like to collect system metrics?")
+# listen = input("Type 'y' to collect metrics, or 'n' to skip to analysis: ")
+# if listen.lower() == 'y':
+#     print("Collecting system metrics...")
+#     collect_system_metrics()
 print("Analyzing system metrics...")
 analyze_system_metrics()
+print("Transforming system metrics...")
+transform_system_metrics()
