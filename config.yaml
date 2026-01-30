@@ -1,0 +1,6 @@
+thresholds:
+  memory_pressure_percent: 80 #flag is true if memory usage is over this value
+  cpu_saturation_percent: 80 #flag is true if non-idle cpu is above saturation (idle < 100-saturation)
+
+windows: 
+  default: [5, 15]

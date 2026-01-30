@@ -123,6 +123,12 @@ window_start,window_end,sample_count,avg_cpu_total_percent,min_cpu_idle_percent,
 
 ---
 
+## Analytics & Insights
+
+The pipeline generates run-level analytics summaries from windowed telemetry, including peak resource usage, sustained memory pressure detection, time ranges of highest CPU utilization, and simple plots for CPU usage and max memory. Results are produced for both 5-second and 15-second windows to compare short-term spikes with longer-term trends.
+
+---
+
 ## Example Output Row
 
 ```csv
