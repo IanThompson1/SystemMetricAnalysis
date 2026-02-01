@@ -23,5 +23,4 @@ def collect_metrics(output_path, duration, interval):
         with open(output_path, "a", newline="") as f:
             writer = csv.writer(f)
             writer.writerow([datetime.now().replace(microsecond=0).isoformat(), cpu_user_percent, cpu_system_percent, cpu_idle_percent, memory_usage.percent, disc_usage.percent])
-
     return output_path

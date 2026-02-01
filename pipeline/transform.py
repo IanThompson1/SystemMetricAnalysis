@@ -46,7 +46,7 @@ def run_transformation(df_valid, output_dir, window_sizes):
         df_out['max_memory_usage_percent'] = df['memory_used_percent'].round(1)
         df_out['avg_disk_usage_percent'] = df['disk_used_percent'].round(1)
         df_out['memory_pressure_flag'] = df_out['max_memory_usage_percent'] > config['thresholds']['memory_pressure_percent']
-        df_out['cpu_saturation_flag'] = df_out['min_cpu_idle_percent'] < (100-config['thresholds']['cpu_saturation_percent'])
+        df_out['cpu_saturation_flag'] = df_out['min_cpu_idle_percent'] < config['thresholds']['cpu_saturation_percent']
         df_out = df_out.dropna(subset=['avg_cpu_total_percent', 'max_memory_usage_percent', 'min_cpu_idle_percent'])
         df_out.reset_index(drop=True, inplace=True)
 

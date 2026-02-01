@@ -35,7 +35,7 @@ def run_analytics(processed_data, output):
         if percent_memory_pressure == 0:
             logging.info(f"Memory pressure threshold: > {config['thresholds']['memory_pressure_percent']}%")
         if cpu_saturation_windows == 0:
-            logging.info(f"CPU saturation threshold: > {config['thresholds']['cpu_saturation_percent']}%")
+            logging.info(f"CPU saturation threshold: cpu_idle < {config['thresholds']['cpu_saturation_percent']}%")
         logging.info(f"Time range with highest CPU usage in {window}s windows: {df.loc[df['avg_cpu_total_percent'].idxmax()]['window_start']} to {df.loc[df['avg_cpu_total_percent'].idxmax()]['window_end']}")
         
         analytics_summary = {
