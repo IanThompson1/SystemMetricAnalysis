@@ -7,9 +7,7 @@ import matplotlib.pyplot as plt
 with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-def run_analytics(processed_data, output):
-    # cpu_plot = plt.figure()
-    # mem_plot = plt.figure()
+def run_analytics(processed_data, output, plots=True):
     fig, (cpu, mem) = plt.subplots(2, 1)
     for window, csv_path in processed_data.items():
         df = pd.read_csv(csv_path)
@@ -55,15 +53,17 @@ def run_analytics(processed_data, output):
         with open(output+"/analytics/analytics_summary_"+str(window)+"s.json", "w") as f:
             json.dump(analytics_summary, f)
 
-        cpu.plot(pd.to_datetime(df['window_start']), df['avg_cpu_total_percent'], label=str(window)+'s Avg CPU %')
-        mem.plot(pd.to_datetime(df['window_start']), df['max_memory_usage_percent'], label=str(window)+'s Max Memory %')
+        if plots:
+            cpu.plot(pd.to_datetime(df['window_start']), df['avg_cpu_total_percent'], label=str(window)+'s Avg CPU %')
+            mem.plot(pd.to_datetime(df['window_start']), df['max_memory_usage_percent'], label=str(window)+'s Max Memory %')
 
-    cpu.set_xlabel('Time')
-    cpu.set_ylabel('CPU Usage (%)')
-    cpu.set_title('CPU Usage Over Time')
-    cpu.legend()
-    mem.set_xlabel('Time')
-    mem.set_ylabel('Max Memory (%)')
-    mem.set_title('Max Memory Over Time')
-    mem.legend()
-    plt.show()
+    if plots:
+        cpu.set_xlabel('Time')
+        cpu.set_ylabel('CPU Usage (%)')
+        cpu.set_title('CPU Usage Over Time')
+        cpu.legend()
+        mem.set_xlabel('Time')
+        mem.set_ylabel('Max Memory (%)')
+        mem.set_title('Max Memory Over Time')
+        mem.legend()
+        plt.show()

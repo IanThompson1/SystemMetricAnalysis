@@ -46,7 +46,7 @@ def main():
         logging.info("Transformation complete")
 
         logging.info("=== Starting Analytics Stage ===")
-        analytics.run_analytics(processed_outputs, args.output)
+        analytics.run_analytics(processed_outputs, args.output, True) #show plots
         logging.info("Analytics complete")
 
         logging.info("=== Pipeline Completed Successfully ===")
