@@ -10,7 +10,30 @@ Returns:
     dataframe: valid data
 """
 def run_ingestion(input_path):
-    df = pd.read_csv(input_path)
+    if input_path is None:
+        print(
+            "No input file provided.\n"
+            "Use --input <path/to/file.csv> to specify a CSV file."
+        )
+        exit(1)
+
+    try:
+        df = pd.read_csv(input_path)
+    except FileNotFoundError:
+        print(
+            f"File not found: {input_path}\n"
+            "Please provide a valid path using --input <path/to/file.csv> OR if using default, make sure to run --collect to get your own data"
+        )
+        exit(1)
+    except IsADirectoryError:
+        print(
+            f"Expected a CSV file, but got a directory: {input_path}"
+        )
+        exit(1)
+    except Exception as e:
+        print(f"Failed to read CSV: {e}")
+        exit(1)
+        df = pd.read_csv(input_path)
     
     logging.info(f"Ingestion started: {input_path}")
 

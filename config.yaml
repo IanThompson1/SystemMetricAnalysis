@@ -4,3 +4,6 @@ thresholds:
 
 windows: 
   default: [5, 15]
+
+plots:
+  default: True #show plots if True

@@ -18,8 +18,8 @@ def parse_args():
     parser.add_argument("--collect", action="store_true", help="Collect system metrics instead of reading an existing CSV")
     parser.add_argument("--duration", type=int, default=60, help="Collection duration in seconds")
     parser.add_argument("--interval", type=int, default=1, help="Sampling interval in seconds")
-    parser.add_argument("--input", required=True, help="Path to raw metrics CSV, skipped if using --collect")
-    parser.add_argument("--output", required=True, help="Directory to store outputs")
+    parser.add_argument("--input", default="data/raw/metrics_collected.csv", help="Path to raw metrics CSV, skipped if using --collect")
+    parser.add_argument("--output", default="data", help="Directory to store outputs")
     parser.add_argument("--window-sizes", type=int, nargs='+', default=config['windows']['default'], help="Window sizes in seconds")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     return parser.parse_args()
@@ -46,7 +46,7 @@ def main():
         logging.info("Transformation complete")
 
         logging.info("=== Starting Analytics Stage ===")
-        analytics.run_analytics(processed_outputs, args.output, True) #show plots
+        analytics.run_analytics(processed_outputs, args.output, config['plots']['default'])
         logging.info("Analytics complete")
 
         logging.info("=== Pipeline Completed Successfully ===")

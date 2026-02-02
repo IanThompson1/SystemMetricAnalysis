@@ -1,172 +1,191 @@
-# System Metrics Data Pipeline (Python)
+# System Metrics Pipeline
 
-## Overview
+A configurable, end-to-end Python data pipeline for collecting, ingesting, transforming, and analyzing system performance metrics. The project simulates a production-style metrics pipeline, supporting schema validation, multi-resolution time-window aggregation, analytics reporting, and CLI-based orchestration.
 
-This project implements a Python-based data pipeline for collecting, validating, transforming, and analyzing **time-series system telemetry**. The pipeline ingests raw system metrics (CPU, memory, disk), applies schema validation and data quality checks, and produces **analytics-ready datasets** using fixed time-window aggregations.
-
-The project is designed to mirror real-world **data engineering and infrastructure monitoring workflows**, emphasizing reliability, clarity, and modular pipeline stages.
+This project was built incrementally through multiple development stages and finalized with testing, configuration management, and production-readiness improvements.
 
 ---
 
-## Goals
+## Features
 
-* Collect real system telemetry at a fixed sampling interval
-* Validate schema, data types, and value ranges during ingestion
-* Log ingestion statistics and data quality metrics
-* Transform raw telemetry into structured, windowed datasets
-* Produce clean outputs suitable for analytics and downstream ML workflows
-
----
-
-## Dataset
-
-### Raw Metrics Schema
-
-Raw telemetry is collected at **1-second intervals** and stored as CSV.
-
-```csv
-timestamp,cpu_user_percent,cpu_system_percent,cpu_idle_percent,memory_used_percent,disk_used_percent
-```
-
-* **timestamp**: ISO 8601 timestamp (UTC)
-* **cpu_user_percent**: CPU time spent in user mode
-* **cpu_system_percent**: CPU time spent in system mode
-* **cpu_idle_percent**: CPU idle percentage
-* **memory_used_percent**: Percentage of memory in use
-* **disk_used_percent**: Percentage of disk space in use
+* **Flexible ingestion**: Read existing CSV files or collect live system metrics
+* **Schema validation** with detailed ingestion statistics
+* **Multi-window aggregation** (arbitrary window sizes via CLI)
+* **Analytics summaries** including peak detection and pressure indicators
+* **Configurable thresholds** via YAML configuration
+* **CLI-based orchestration** with sensible defaults
+* **Automated tests** for pipeline stability
+* **Structured logging** for observability
 
 ---
 
-## Pipeline Architecture
+## Project Structure
 
 ```
-Raw Metrics (CSV)
-      ↓
-Schema Validation & Ingestion Logging
-      ↓
-Data Cleaning & Transformation
-      ↓
-Windowed Aggregation (5s / 15s)
-      ↓
-Analytics-Ready Output Datasets
+system-metrics-pipeline/
+│
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   └── analytics/
+│
+├── pipeline/
+│   ├── ingest.py
+│   ├── transform.py
+│   ├── analytics.py
+│   ├── collect.py
+│
+├── tests/
+│   ├── test_ingest.py
+│   ├── test_transform.py
+│   └── test_analytics.py
+│
+├── config.yaml
+├── main.py
+└── README.md
 ```
 
-Each stage is implemented as a modular component to support clarity, testing, and future extension.
-
 ---
 
-## Ingestion & Schema Validation
+## Configuration
 
-### Validation Rules
+Runtime thresholds and defaults are defined in `config.yaml`:
 
-During ingestion, each row is validated to ensure:
+```yaml
+thresholds:
+  memory_pressure_percent: 80
+  cpu_saturation_percent: 20
 
-* All required columns are present
-* Timestamps are valid ISO 8601 datetimes
-* Metric fields are numeric
-* All percentage values fall within `[0, 100]`
+windows:
+  default: [5, 15]
 
-Rows failing validation are excluded from downstream processing.
-
-### Ingestion Metrics Logged
-
-* Total rows read
-* Valid rows ingested
-* Invalid rows rejected
-* Ingestion duration
-
-This ensures **data reliability and observability** at the ingestion stage.
-
----
-
-## Data Transformation & Aggregation
-
-### Cleaning & Preparation
-
-* Convert timestamps to datetime objects
-* Sort records chronologically
-* Derive total CPU utilization:
-
-  ```text
-  cpu_total_percent = cpu_user_percent + cpu_system_percent
-  ```
-
-### Time-Series Windowing
-
-Telemetry is aggregated into **fixed windows**:
-
-* **5-second windows** for short-term signal smoothing
-* **15-second windows** for trend analysis
-
-Partial windows (e.g., at start or end of a run) are retained and tracked using a sample count.
-
----
-
-## Output Schemas
-
-### 5s / 15s Windowed Metrics
-
-```csv
-window_start,window_end,sample_count,avg_cpu_total_percent,min_cpu_idle_percent,max_memory_used_percent,avg_disk_used_percent,memory_pressure_flag,cpu_saturation_flag
+plots:
+  default: True
 ```
 
-#### Field Definitions
-
-* **window_start / window_end(inclusive)**: Time boundaries of the aggregation window
-* **sample_count**: Number of raw samples in the window
-* **avg_cpu_total_percent**: Average CPU utilization
-* **min_cpu_idle_percent**: Minimum idle CPU observed
-* **max_memory_used_percent**: Peak memory usage
-* **avg_disk_used_percent**: Average disk usage
-* **memory_pressure_flag**: True if memory usage exceeds 90%
-* **cpu_saturation_flag**: True if CPU idle drops below 10%
+This allows tuning system behavior without modifying application code.
 
 ---
 
-## Analytics & Insights
+## Running the Pipeline
 
-The pipeline generates run-level analytics summaries from windowed telemetry, including peak resource usage, sustained memory pressure detection, time ranges of highest CPU utilization, and simple plots for CPU usage and max memory. Results are produced for both 5-second and 15-second windows to compare short-term spikes with longer-term trends.
+### Default execution
 
----
+If no arguments are provided, the pipeline runs using default input and output paths:
 
-## Example Output Row
-
-```csv
-2026-01-23T15:12:30,2026-01-23T15:12:44,15,27.4,47.4,91.1,55.1,true,false
+```bash
+python main.py
 ```
 
-This row represents a 15-second window summarizing system behavior for analytics or alerting workflows.
+Defaults:
+
+* Input: `data/raw/metrics_collected.csv`
+* Output directory: `data/`
+* Window sizes: values defined in `config.yaml`
 
 ---
 
-## Technologies Used
+### Using a custom input file
 
-* **Python**
-* **psutil** (system metrics collection)
-* **CSV / datetime / logging** (standard library)
-
----
-
-## Key Concepts Demonstrated
-
-* Data ingestion pipelines
-* Schema validation & data quality checks
-* Time-series processing
-* Windowed aggregation
-* Feature engineering
-* Analytics-ready dataset design
+```bash
+python main.py --input data/raw/metrics_raw.csv --output data/
+```
 
 ---
 
-## Future Improvements
+### Collect live system metrics
 
-* Persist outputs to SQLite or Parquet
-* Add anomaly detection using statistical or ML techniques
-* Support multi-host ingestion
-* Parallelize ingestion and transformation stages
+```bash
+python main.py --collect --duration 60 --interval 1 --output data/
+```
+
+This will:
+
+1. Collect system metrics locally
+2. Write a raw CSV to `data/raw/`
+3. Run the full pipeline on the collected data
 
 ---
 
-## Summary
+### Custom window sizes
 
-This project demonstrates how raw infrastructure telemetry can be transformed into **reliable, structured datasets** suitable for analytics, monitoring, and machine learning systems. The pipeline emphasizes correctness, clarity, and real-world data engineering practices.
+```bash
+python main.py --window-sizes 2 5 10 15
+```
+
+Each window size produces an independent processed dataset and analytics summary.
+
+---
+
+## Pipeline Stages
+
+### 0 Collection (optional)
+
+* Gets system data from the computer and logs them into a csvfile
+* Customizable period between data checks and how long it measures for
+
+### 1 Ingestion
+
+* Validates schema and data types
+* Logs row counts, dropped rows, and summary statistics
+* Measures ingestion performance
+
+### 2 Transformation
+
+* Aligns timestamps
+* Aggregates metrics into fixed-size time windows
+* Writes one processed file per window size
+
+### 3 Analytics
+
+* Computes descriptive statistics per window size
+* Detects peak CPU usage periods
+* Flags memory pressure and CPU saturation events
+* Writes analytics summaries to disk
+* Creates readable plots for CPU and MEMORY usage for each window size
+
+---
+
+## Testing
+
+Basic tests:
+
+```bash
+python -m pytest
+```
+
+Tests cover:
+
+* Successful ingestion of valid data
+* Correct windowing behavior
+* Analytics execution without runtime failures
+
+---
+
+## Design Decisions
+
+* **Separation of concerns**: Each pipeline stage is isolated and reusable
+* **Metadata-based flow**: Transformation returns output paths instead of in-memory data
+* **Config-driven behavior**: Thresholds and defaults live outside application logic
+* **CLI-first design**: Enables flexible execution and experimentation
+* **Lightweight testing**: Focused on stability rather than exhaustive correctness
+
+---
+
+## Why This Project
+
+This project demonstrates practical data engineering skills including:
+
+* More than basics of Python
+* Documentation
+* Pipeline orchestration
+* Time-series data processing
+* Observability and logging
+* Configuration management
+* Testing and reliability
+
+---
+
+## Status
+
+The pipeline is feature-complete, tested, configurable, and production-ready for its intended scope.
